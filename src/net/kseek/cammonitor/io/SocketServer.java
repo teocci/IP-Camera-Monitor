@@ -1,4 +1,4 @@
-package com.dynamsoft.io;
+package net.kseek.cammonitor.io;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -7,20 +7,21 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import com.dynamsoft.data.BufferManager;
-import com.dynamsoft.data.DataListener;
+import net.kseek.cammonitor.data.BufferManager;
+import net.kseek.cammonitor.data.DataListener;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
 public class SocketServer extends Thread {
-	private ServerSocket mServer;
-	private DataListener mDataListener;
-	private BufferManager mBufferManager;
+	private ServerSocket server;
+	private DataListener dataListener;
+	private BufferManager bufferManager;
+	private int socketPort;
 
-	public SocketServer() {
-	    
+	public SocketServer(int port) {
+		socketPort = port;
 	}
 
 	@Override
@@ -34,14 +35,14 @@ public class SocketServer extends Thread {
 		Socket socket = null;
 		ByteArrayOutputStream byteArray = null;
 		try {
-			mServer = new ServerSocket(8888);
+			server = new ServerSocket(socketPort);
 			while (!Thread.currentThread().isInterrupted()) {
 				if (byteArray != null)
 					byteArray.reset();
 				else
 					byteArray = new ByteArrayOutputStream();
 
-				socket = mServer.accept();
+				socket = server.accept();
 				System.out.println("new socket");
 				
 				inputStream = new BufferedInputStream(socket.getInputStream());
@@ -49,11 +50,10 @@ public class SocketServer extends Thread {
 				
 				byte[] buff = new byte[256];
 				byte[] imageBuff = null;
-				int len = 0;
-				String msg = null;
+				int len;
+				String msg;
 				// read msg
 				while ((len = inputStream.read(buff)) != -1) {
-					
 					msg = new String(buff, 0, len);
 					// JSON analysis
 	                JsonParser parser = new JsonParser();
@@ -78,8 +78,8 @@ public class SocketServer extends Thread {
 	                        int height = element.getAsInt();
 	                        
 	                        imageBuff = new byte[length];
-                            mBufferManager = new BufferManager(length, width, height);
-                            mBufferManager.setOnDataListener(mDataListener);
+                            bufferManager = new BufferManager(length, width, height);
+                            bufferManager.setOnDataListener(dataListener);
                             break;
 	                    }
 	                }
@@ -97,15 +97,14 @@ public class SocketServer extends Thread {
 		            
 		            // read image data
 				    while ((len = inputStream.read(imageBuff)) != -1) {
-	                    mBufferManager.fillBuffer(imageBuff, len);
+	                    bufferManager.fillBuffer(imageBuff, len);
 	                }
 				}
 				
-				if (mBufferManager != null) {
-					mBufferManager.close();
+				if (bufferManager != null) {
+					bufferManager.close();
 				}
 			}
-
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -135,6 +134,6 @@ public class SocketServer extends Thread {
 	}
 
 	public void setOnDataListener(DataListener listener) {
-		mDataListener = listener;
+		dataListener = listener;
 	}
 }

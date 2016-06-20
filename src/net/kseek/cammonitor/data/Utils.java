@@ -1,4 +1,4 @@
-package com.dynamsoft.ui;
+package net.kseek.cammonitor.data;
 
 public class Utils {
     
